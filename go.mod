@@ -1,4 +1,4 @@
-module money_transfer
+module github.com/romandnk/money_transfer
 
 go 1.20
 

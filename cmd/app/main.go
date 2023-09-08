@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"github.com/gin-gonic/gin"
-	"money_transfer/config"
-	"money_transfer/internal/server/httpserver"
+	"github.com/romandnk/money_transfer/config"
+	"github.com/romandnk/money_transfer/internal/server/httpserver"
 	"os/signal"
 	"syscall"
 )
