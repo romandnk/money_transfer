@@ -3,3 +3,9 @@ http_server:
   read_timeout: "3s"
   write_timeout: "3s"
   shutdown_timeout: "2s"
+
+zap_logger:
+  level: "info"
+  encoding: "json"
+  output_path: ["stdout"]
+  error_output_path: ["stdout"]
