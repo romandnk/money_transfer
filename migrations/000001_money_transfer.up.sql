@@ -5,9 +5,8 @@ CREATE TABLE currencies (
 CREATE INDEX code_idx ON currencies (code);
 
 CREATE TABLE accounts (
-    id SERIAL PRIMARY KEY,
-    currency_code INTEGER NOT NULL,
-    number VARCHAR(90) NOT NULL,
+    number VARCHAR(42) UNIQUE NOT NULL,
+    currency_code VARCHAR(5) NOT NULL,
     balance NUMERIC NOT NULL,
     FOREIGN KEY (currency_code) REFERENCES currencies (code),
     CHECK (balance >= 0)
@@ -16,13 +15,14 @@ CREATE TABLE accounts (
 CREATE INDEX number_idx ON accounts (number);
 
 CREATE TABLE transactions (
+    id SERIAL PRIMARY KEY,
     created_at TIMESTAMPTZ NOT NULL,
     status VARCHAR(7) NOT NULL,
     amount NUMERIC NOT NULL,
     currency_code VARCHAR(5) NOT NULL,
-    from_account INTEGER,
-    to_account INTEGER NOT NULL,
-    FOREIGN KEY (from_account) REFERENCES accounts (id),
-    FOREIGN KEY (to_account) REFERENCES accounts (id)
+    from_account VARCHAR(90),
+    to_account VARCHAR(90) NOT NULL,
+    FOREIGN KEY (from_account) REFERENCES accounts (number),
+    FOREIGN KEY (to_account) REFERENCES accounts (number)
 );
 

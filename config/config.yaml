@@ -9,3 +9,8 @@ zap_logger:
   encoding: "json"
   output_path: ["stdout"]
   error_output_path: ["stdout"]
+
+postgres:
+  max_pool_size: 20
+  conn_timeout: "1s"
+  conn_attempts: 5

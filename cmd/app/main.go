@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"github.com/romandnk/money_transfer/config"
+	v1 "github.com/romandnk/money_transfer/internal/controller/http/v1"
 	zap_logger "github.com/romandnk/money_transfer/internal/logger/zap"
 	"github.com/romandnk/money_transfer/internal/server/httpserver"
+	"github.com/romandnk/money_transfer/internal/service"
+	"github.com/romandnk/money_transfer/internal/storage/postgres"
 	"go.uber.org/zap"
 	"os/signal"
 	"syscall"
@@ -34,8 +36,28 @@ func main() {
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	defer cancel()
 
+	// initialize postgres storage
+	storage, err := postgres.NewPostgresStorage(cfg.PostgresDB.URL,
+		postgres.MaxPoolSize(cfg.PostgresDB.MaxPoolSize),
+		postgres.ConnTimeout(cfg.PostgresDB.ConnTimeout),
+		postgres.ConnAttempts(cfg.PostgresDB.ConnAttempts),
+	)
+	if err != nil {
+		log.Error("error initialize postgres storage: %w", err)
+		return
+	}
+	defer storage.Close()
+
+	log.Info("using postgres storage")
+
+	// initialize services
+	services := service.NewServices(storage)
+
+	// initialize handler
+	handler := v1.NewHandler(services, log)
+
 	// initialize http server
-	httpServer := httpserver.New(gin.Default(),
+	httpServer := httpserver.New(handler.InitRoutes(),
 		httpserver.Port(cfg.HTTPServer.Port),
 		httpserver.ReadTimeout(cfg.HTTPServer.ReadTimeout),
 		httpserver.WriteTimeout(cfg.HTTPServer.WriteTimeout),

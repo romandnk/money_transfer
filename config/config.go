@@ -11,6 +11,7 @@ type (
 	Config struct {
 		HTTPServer `yaml:"http_server"`
 		ZapLogger  `yaml:"zap_logger"`
+		PostgresDB `yaml:"postgres"`
 	}
 
 	HTTPServer struct {
@@ -25,6 +26,13 @@ type (
 		Encoding        string   `yaml:"encoding"`
 		OutputPath      []string `yaml:"output_path"`
 		ErrorOutputPath []string `yaml:"error_output_path"`
+	}
+
+	PostgresDB struct {
+		MaxPoolSize  int           `yaml:"max_pool_size"`
+		ConnTimeout  time.Duration `yaml:"conn_timeout"`
+		ConnAttempts int           `yaml:"conn_attempts"`
+		URL          string        `env-required:"true" env:"PG_URL"`
 	}
 )
 
