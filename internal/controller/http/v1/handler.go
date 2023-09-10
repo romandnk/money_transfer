@@ -10,12 +10,14 @@ type Handler struct {
 	engine   *gin.Engine
 	services *service.Services
 	logger   logger.Logger
+	signKey  string
 }
 
-func NewHandler(services *service.Services, logger logger.Logger) *Handler {
+func NewHandler(services *service.Services, logger logger.Logger, signKey string) *Handler {
 	return &Handler{
 		services: services,
 		logger:   logger,
+		signKey:  signKey,
 	}
 }
 
@@ -25,9 +27,14 @@ func (h *Handler) InitRoutes() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	h.engine = router
 
+	auth := router.Group("/auth")
+	{
+		newUserRoutes(auth, h.services.User)
+	}
+
 	api := router.Group("/api")
 	{
-		version := api.Group("/v1")
+		version := api.Group("/v1", h.authorizationMiddleware())
 		{
 			newAccountRoutes(version, h.services.Account)
 		}

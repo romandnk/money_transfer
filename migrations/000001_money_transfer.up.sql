@@ -1,3 +1,9 @@
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(254) NOT NULL UNIQUE,
+    password VARCHAR(60) NOT NULL
+);
+
 CREATE TABLE currencies (
     code VARCHAR(5) UNIQUE NOT NULL
 );
@@ -5,10 +11,12 @@ CREATE TABLE currencies (
 CREATE INDEX code_idx ON currencies (code);
 
 CREATE TABLE accounts (
+    user_id INTEGER NOT NULL,
     number VARCHAR(42) UNIQUE NOT NULL,
     currency_code VARCHAR(5) NOT NULL,
     balance NUMERIC NOT NULL,
     FOREIGN KEY (currency_code) REFERENCES currencies (code),
+    FOREIGN KEY (user_id) REFERENCES users (id),
     CHECK (balance >= 0)
 );
 
@@ -25,4 +33,3 @@ CREATE TABLE transactions (
 );
 
 INSERT INTO currencies VALUES ('RUB');
-INSERT INTO accounts VALUES ('1','RUB', 0);

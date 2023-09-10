@@ -51,10 +51,10 @@ func main() {
 	log.Info("using postgres storage")
 
 	// initialize services
-	services := service.NewServices(storage)
+	services := service.NewServices(storage, cfg.JWT.SignKey)
 
 	// initialize handler
-	handler := v1.NewHandler(services, log)
+	handler := v1.NewHandler(services, log, cfg.JWT.SignKey)
 
 	// initialize http server
 	httpServer := httpserver.New(handler.InitRoutes(),

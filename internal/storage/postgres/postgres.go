@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	usersTable        = "users"
 	accountsTable     = "accounts"
 	transactionsTable = "transactions"
 )

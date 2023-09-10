@@ -12,6 +12,7 @@ type (
 		HTTPServer `yaml:"http_server"`
 		ZapLogger  `yaml:"zap_logger"`
 		PostgresDB `yaml:"postgres"`
+		JWT
 	}
 
 	HTTPServer struct {
@@ -33,6 +34,10 @@ type (
 		ConnTimeout  time.Duration `yaml:"conn_timeout"`
 		ConnAttempts int           `yaml:"conn_attempts"`
 		URL          string        `env-required:"true" env:"PG_URL"`
+	}
+
+	JWT struct {
+		SignKey string `env-required:"true" env:"JWT_SIGN_KEY"`
 	}
 )
 
