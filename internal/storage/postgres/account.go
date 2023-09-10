@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/romandnk/money_transfer/internal/models"
 	"github.com/shopspring/decimal"
 	"time"
@@ -36,7 +38,7 @@ func (p *Postgres) Deposit(ctx context.Context, currency models.Currency, amount
 				Values(now, statusError, amount, currency.Code, nil, to).
 				ToSql()
 
-			_ = setTransactionStatusError(ctx, tx, sql, args...)
+			_ = setTransactionStatusError(ctx, p.Pool, sql, args...)
 		}
 
 		_ = tx.Rollback(ctx)
@@ -127,10 +129,119 @@ func setTransactionStatusSuccess(ctx context.Context, tx pgx.Tx, sql string, arg
 	return nil
 }
 
-func setTransactionStatusError(ctx context.Context, tx pgx.Tx, sql string, args ...any) error {
-	_, err := tx.Exec(ctx, sql, args...)
+func setTransactionStatusError(ctx context.Context, pool PgxPool, sql string, args ...any) error {
+	_, err := pool.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (p *Postgres) Transfer(ctx context.Context, currency models.Currency, amount decimal.Decimal, userID int, to string) error {
+	var success bool
+	var from string
+	now := time.Now().UTC()
+
+	tx, err := p.Pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel: pgx.RepeatableRead,
+	})
+	if err != nil {
+		return fmt.Errorf("AccountStorage - Transfer - p.pool.BeginTx: %w", err)
+	}
+	defer func() {
+		// if we return from function before successful operation,
+		// that means we have to add a new note about error transaction
+		if !success {
+			sql, args, _ := p.builder.
+				Insert(transactionsTable).
+				Columns("created_at", "status", "amount", "currency_code", "from_account", "to_account").
+				Values(now, statusError, amount, currency.Code, from, to).
+				ToSql()
+
+			_ = setTransactionStatusError(ctx, p.Pool, sql, args...)
+		}
+
+		_ = tx.Rollback(ctx)
+	}()
+
+	sql, args, _ := p.builder.
+		Select("number").
+		From(accountsTable).
+		Where(squirrel.Eq{"user_id": userID}).
+		Where(squirrel.Eq{"currency_code": currency.Code}).
+		ToSql()
+
+	err = tx.QueryRow(ctx, sql, args...).Scan(&from)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("user %d doesn't have an account in %s", userID, currency.Code)
+		}
+		return fmt.Errorf("AccountStorage - Transfer - tx.QueryRow.Scan(from): %w", err)
+	}
+
+	// create note about creating transaction
+	sql, args, _ = p.builder.
+		Insert(transactionsTable).
+		Columns("created_at", "status", "amount", "currency_code", "from_account", "to_account").
+		Values(now, statusCreated, amount, currency.Code, from, to).
+		Suffix("RETURNING id").
+		ToSql()
+
+	transactionId, err := setTransactionStatusCreated(ctx, tx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("AccountStorage - Transfer - setTransactionStatusCreated: %w", err)
+	}
+
+	sql, args, _ = p.builder.
+		Update(accountsTable).
+		Set("balance", squirrel.Expr("balance - ?", amount)).
+		Where(squirrel.Eq{"number": from}).
+		ToSql()
+
+	_, err = tx.Exec(ctx, sql, args...)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if ok := errors.As(err, &pgErr); ok {
+			if pgErr.Code == "23514" {
+				return fmt.Errorf("not enough money")
+			}
+		}
+		return fmt.Errorf("AccountStorage - Transfer - tx.Exec: %v", err)
+	}
+
+	sql, args, _ = p.builder.
+		Update(accountsTable).
+		Set("balance", squirrel.Expr("balance + ?", amount)).
+		Where(squirrel.Eq{"number": to}).
+		ToSql()
+
+	result, err := tx.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("AccountStorage - Transfer - tx.Exec: %v", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("%s doesn't exist", to)
+	}
+
+	// update transaction note about successful transaction
+	sql, args, _ = p.builder.
+		Update(transactionsTable).
+		Set("status", statusSuccess).
+		Where(squirrel.Eq{"id": transactionId}).
+		ToSql()
+
+	err = setTransactionStatusSuccess(ctx, tx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("AccountStorage - Transfer - setTransactionStatusSuccess: %w", err)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("AccountStorage - Transfer - tx.Commit: %w", err)
+	}
+
+	success = true
+
 	return nil
 }

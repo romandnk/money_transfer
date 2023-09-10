@@ -12,6 +12,13 @@ type AccountDepositInput struct {
 	To           string
 }
 
+type AccountTransferInput struct {
+	UserID       string
+	CurrencyCode string
+	Amount       float64
+	To           string
+}
+
 type User interface {
 	SignUp(ctx context.Context, user models.User) (int, error)
 	SignIn(ctx context.Context, email, password string) (string, error)
@@ -19,6 +26,7 @@ type User interface {
 
 type Account interface {
 	Deposit(ctx context.Context, input AccountDepositInput) error
+	Transfer(ctx context.Context, input AccountTransferInput) error
 }
 
 type Services struct {

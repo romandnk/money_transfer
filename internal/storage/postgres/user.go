@@ -31,12 +31,12 @@ func (p *Postgres) GetUserByEmail(ctx context.Context, email string) (models.Use
 	var user models.User
 
 	sql, args, _ := p.builder.
-		Select("email", "password").
+		Select("id", "email", "password").
 		From(usersTable).
 		Where(squirrel.Eq{"email": email}).
 		ToSql()
 
-	err := p.Pool.QueryRow(ctx, sql, args...).Scan(&user.Email, &user.Password)
+	err := p.Pool.QueryRow(ctx, sql, args...).Scan(&user.ID, &user.Email, &user.Password)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return user, fmt.Errorf("user not found")

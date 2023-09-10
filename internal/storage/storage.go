@@ -13,7 +13,7 @@ type User interface {
 
 type Account interface {
 	Deposit(ctx context.Context, currency models.Currency, amount decimal.Decimal, to string) error
-	//Transfer(ctx context.Context, currency models.Currency, amount decimal.Decimal, to string) error
+	Transfer(ctx context.Context, currency models.Currency, amount decimal.Decimal, userID int, to string) error
 }
 
 type Storage interface {
