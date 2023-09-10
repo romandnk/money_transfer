@@ -32,7 +32,7 @@ func (p *Postgres) Deposit(ctx context.Context, currency models.Currency, amount
 		if !success {
 			sql, args, _ := p.builder.
 				Insert(transactionsTable).
-				Columns("created_at", "status", "amount", "currency_code", "from_wallet", "to_wallet").
+				Columns("created_at", "status", "amount", "currency_code", "from_account", "to_account").
 				Values(now, statusError, amount, currency.Code, nil, to).
 				ToSql()
 
@@ -45,7 +45,7 @@ func (p *Postgres) Deposit(ctx context.Context, currency models.Currency, amount
 	// create note about creating transaction
 	sql, args, _ := p.builder.
 		Insert(transactionsTable).
-		Columns("created_at", "status", "amount", "currency_code", "from_wallet", "to_wallet").
+		Columns("created_at", "status", "amount", "currency_code", "from_account", "to_account").
 		Values(now, statusCreated, amount, currency.Code, nil, to).
 		Suffix("RETURNING id").
 		ToSql()

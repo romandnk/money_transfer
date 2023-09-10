@@ -21,8 +21,8 @@ CREATE TABLE transactions (
     amount NUMERIC NOT NULL,
     currency_code VARCHAR(5) NOT NULL,
     from_account VARCHAR(90),
-    to_account VARCHAR(90) NOT NULL,
-    FOREIGN KEY (from_account) REFERENCES accounts (number),
-    FOREIGN KEY (to_account) REFERENCES accounts (number)
+    to_account VARCHAR(90) NOT NULL
 );
 
+INSERT INTO currencies VALUES ('RUB');
+INSERT INTO accounts VALUES ('1','RUB', 0);
