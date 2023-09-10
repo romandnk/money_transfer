@@ -17,6 +17,7 @@ func newAccountRoutes(g *gin.RouterGroup, account service.Account) {
 
 	g.POST("/invoice", r.Deposit)
 	g.POST("/withdraw", r.Transfer)
+	g.GET("/balance", r.GetByUserID)
 }
 
 type requestBody struct {
@@ -78,4 +79,25 @@ func (r *accountRoutes) Transfer(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (r *accountRoutes) GetByUserID(c *gin.Context) {
+	userID, ok := c.Get("user_id")
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, map[string]interface{}{
+			"error": "error retrieving user id",
+		})
+		return
+	}
+
+	result, err := r.account.GetBalanceByUserID(c, userID.(string))
+	if err != nil {
+		newResponse(c, http.StatusBadRequest, "error depositing", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, map[string]interface{}{
+		"total": len(result),
+		"data":  result,
+	})
 }

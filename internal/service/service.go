@@ -27,6 +27,7 @@ type User interface {
 type Account interface {
 	Deposit(ctx context.Context, input AccountDepositInput) error
 	Transfer(ctx context.Context, input AccountTransferInput) error
+	GetBalanceByUserID(ctx context.Context, userID string) ([]models.UserBalance, error)
 }
 
 type Services struct {

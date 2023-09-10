@@ -245,3 +245,39 @@ func (p *Postgres) Transfer(ctx context.Context, currency models.Currency, amoun
 
 	return nil
 }
+
+func (p *Postgres) GetBalanceByUserID(ctx context.Context, userID int) ([]models.UserBalance, error) {
+	var result []models.UserBalance
+
+	query := fmt.Sprintf(`
+		SELECT
+   		 	a.currency_code,
+    		(a.balance - COALESCE(SUM(CASE WHEN t.status = 'Created' THEN t.amount ELSE 0 END), 0)) AS actual_balance,
+    		COALESCE(SUM(CASE WHEN t.status = 'Created' THEN t.amount ELSE 0 END), 0) AS frozen_balance
+		FROM
+   		 	%s AS a
+    			LEFT JOIN
+    		%s AS t ON a.number = t.from_account
+		WHERE user_id = $1
+		GROUP BY
+    		a.currency_code, a.balance;`, accountsTable, transactionsTable)
+
+	rows, err := p.Pool.Query(ctx, query, userID)
+	if err != nil {
+		return result, fmt.Errorf("AccountStorage - GetBalanceByCurrency - p.Pool.Query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var byCurrency models.UserBalance
+
+		err := rows.Scan(&byCurrency.CurrencyCode, &byCurrency.Actual, &byCurrency.Reserved)
+		if err != nil {
+			return result, fmt.Errorf("AccountStorage - GetBalanceByCurrency - rows.Scan: %w", err)
+		}
+
+		result = append(result, byCurrency)
+	}
+
+	return result, nil
+}

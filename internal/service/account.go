@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/romandnk/money_transfer/internal/models"
 	"github.com/romandnk/money_transfer/internal/storage"
 	"strconv"
 )
@@ -56,4 +57,12 @@ func (a *accountService) Transfer(ctx context.Context, input AccountTransferInpu
 	}
 
 	return a.accountStorage.Transfer(ctx, currency, amount, userID, to)
+}
+
+func (a *accountService) GetBalanceByUserID(ctx context.Context, userID string) ([]models.UserBalance, error) {
+	parsedUserID, err := strconv.Atoi(userID)
+	if err != nil {
+		return []models.UserBalance{}, err
+	}
+	return a.accountStorage.GetBalanceByUserID(ctx, parsedUserID)
 }

@@ -33,3 +33,5 @@ CREATE TABLE transactions (
 );
 
 INSERT INTO currencies VALUES ('RUB');
+INSERT INTO currencies VALUES ('EUR');
+INSERT INTO currencies VALUES ('USD');
